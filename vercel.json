@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/vercel-entry.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**", "db/**", "zod/**"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/src/vercel-entry.ts"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/src/vercel-entry.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/src/vercel-entry.ts"
+    }
+  ]
+}
