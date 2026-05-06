@@ -23,6 +23,10 @@ async function buildAll() {
     bundle: true,
     format: "esm",
     outdir: distDir,
+    alias: {
+      "@workspace/db": path.resolve(artifactDir, "db/src/index.ts"),
+      "@workspace/api-zod": path.resolve(artifactDir, "zod/src/index.ts")
+    },
     outExtension: { ".js": ".mjs" },
     logLevel: "info",
     // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
