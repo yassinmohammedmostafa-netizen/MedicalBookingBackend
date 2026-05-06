@@ -1,7 +1,7 @@
 import "dotenv/config";
-import app from "./app";
-import { logger } from "./lib/logger";
-import { seedIfEmpty } from "./lib/seed";
+import app from "./app.js";
+import { logger } from "./lib/logger.js";
+import { seedIfEmpty } from "./lib/seed.js";
 
 console.log("[ENV] Checking environment variables...");
 console.log(`[ENV] PORT: ${process.env.PORT}`);

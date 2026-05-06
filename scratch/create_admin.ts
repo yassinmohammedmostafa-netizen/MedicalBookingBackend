@@ -1,7 +1,7 @@
 
 import "dotenv/config";
 import { db, usersTable } from "./db/src/index.js";
-import { hashPassword } from "../src/lib/auth";
+import { hashPassword } from "../src/lib/auth.js";
 
 async function createAdmin() {
   const email = "y25mmk@gmail.com";

@@ -5,7 +5,7 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateProfileBodyPreferredLang } from "./updateProfileBodyPreferredLang";
+import type { UpdateProfileBodyPreferredLang } from "./updateProfileBodyPreferredLang.js";
 
 export interface UpdateProfileBody {
   preferredLang?: UpdateProfileBodyPreferredLang;

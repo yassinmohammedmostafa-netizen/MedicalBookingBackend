@@ -5,7 +5,7 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateUserAdminBodyRole } from "./updateUserAdminBodyRole";
+import type { UpdateUserAdminBodyRole } from "./updateUserAdminBodyRole.js";
 
 export interface UpdateUserAdminBody {
   firstName?: string;

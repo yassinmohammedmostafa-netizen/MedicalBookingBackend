@@ -5,7 +5,7 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateStatusBodyStatus } from "./updateStatusBodyStatus";
+import type { UpdateStatusBodyStatus } from "./updateStatusBodyStatus.js";
 
 export interface UpdateStatusBody {
   status: UpdateStatusBodyStatus;

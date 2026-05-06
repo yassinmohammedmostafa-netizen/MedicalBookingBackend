@@ -5,8 +5,8 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { UserPreferredLang } from "./userPreferredLang";
-import type { UserRole } from "./userRole";
+import type { UserPreferredLang } from "./userPreferredLang.js";
+import type { UserRole } from "./userRole.js";
 
 export interface User {
   id: number;

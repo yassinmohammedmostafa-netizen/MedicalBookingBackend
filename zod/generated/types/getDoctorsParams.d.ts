@@ -5,9 +5,9 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { GetDoctorsGender } from "./getDoctorsGender";
-import type { GetDoctorsSessionType } from "./getDoctorsSessionType";
-import type { GetDoctorsType } from "./getDoctorsType";
+import type { GetDoctorsGender } from "./getDoctorsGender.js";
+import type { GetDoctorsSessionType } from "./getDoctorsSessionType.js";
+import type { GetDoctorsType } from "./getDoctorsType.js";
 export type GetDoctorsParams = {
     specialty?: string;
     type?: GetDoctorsType;

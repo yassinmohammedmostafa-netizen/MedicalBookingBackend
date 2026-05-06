@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { usersTable } from "./users";
+import { usersTable } from "./users.js";
 
 export const passwordResetTokensTable = sqliteTable("password_reset_tokens", {
   id: integer("id").primaryKey({ autoIncrement: true }),

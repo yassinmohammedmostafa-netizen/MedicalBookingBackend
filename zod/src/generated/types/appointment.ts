@@ -5,7 +5,7 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { AppointmentStatus } from "./appointmentStatus";
+import type { AppointmentStatus } from "./appointmentStatus.js";
 
 export interface Appointment {
   id: number;

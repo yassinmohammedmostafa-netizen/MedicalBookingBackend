@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { db } from "../../db/src/index.js";
 import { usersTable, doctorsTable, slotsTable } from "../../db/src/index.js";
-import { hashPassword } from "./auth";
-import { logger } from "./logger";
+import { hashPassword } from "./auth.js";
+import { logger } from "./logger.js";
 
 export async function seedIfEmpty() {
   const existingUsers = await db.select().from(usersTable);

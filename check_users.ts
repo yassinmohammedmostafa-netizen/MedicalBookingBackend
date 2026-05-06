@@ -1,5 +1,5 @@
-import { db } from "./src/lib/db.ts";
-import { usersTable } from "../../lib/db/src/schema/users.ts";
+import { db } from "./src/lib/db.ts.js";
+import { usersTable } from "../../lib/db/src/schema/users.ts.js";
 import { eq } from "drizzle-orm";
 
 async function check() {

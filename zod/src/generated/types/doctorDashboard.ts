@@ -5,7 +5,7 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { Appointment } from "./appointment";
+import type { Appointment } from "./appointment.js";
 
 export interface DoctorDashboard {
   upcomingCount: number;

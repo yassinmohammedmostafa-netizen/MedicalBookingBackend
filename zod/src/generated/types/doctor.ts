@@ -5,9 +5,9 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { DoctorGender } from "./doctorGender";
-import type { DoctorSessionType } from "./doctorSessionType";
-import type { DoctorType } from "./doctorType";
+import type { DoctorGender } from "./doctorGender.js";
+import type { DoctorSessionType } from "./doctorSessionType.js";
+import type { DoctorType } from "./doctorType.js";
 
 export interface Doctor {
   id: number;

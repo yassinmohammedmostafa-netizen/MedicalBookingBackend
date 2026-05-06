@@ -5,7 +5,7 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { ReviewType } from "./reviewType";
+import type { ReviewType } from "./reviewType.js";
 export interface Review {
     id: number;
     doctorId: number;

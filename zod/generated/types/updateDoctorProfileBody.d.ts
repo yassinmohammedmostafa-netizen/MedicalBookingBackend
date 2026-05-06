@@ -5,8 +5,8 @@
  * Esaal medical appointment platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateDoctorProfileBodyGender } from "./updateDoctorProfileBodyGender";
-import type { UpdateDoctorProfileBodySessionType } from "./updateDoctorProfileBodySessionType";
+import type { UpdateDoctorProfileBodyGender } from "./updateDoctorProfileBodyGender.js";
+import type { UpdateDoctorProfileBodySessionType } from "./updateDoctorProfileBodySessionType.js";
 export interface UpdateDoctorProfileBody {
     bio?: string;
     isOnline?: boolean;

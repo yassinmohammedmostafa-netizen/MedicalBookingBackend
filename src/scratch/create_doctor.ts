@@ -1,7 +1,7 @@
 
 import { db } from "../../db/src/index.js";
 import { usersTable, doctorsTable } from "../../db/src/index.js";
-import { hashPassword } from "../lib/auth";
+import { hashPassword } from "../lib/auth.js";
 
 async function createDoctor() {
   const firstName = 'Dummy';
