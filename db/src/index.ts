@@ -7,3 +7,4 @@ const connectionString = process.env.DATABASE_URL!;
 // For production, we use the postgres driver
 const client = postgres(connectionString);
 export const db = drizzle(client, { schema });
+export * from "./schema/index.js";
