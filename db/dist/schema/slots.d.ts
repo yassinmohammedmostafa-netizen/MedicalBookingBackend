@@ -1,0 +1,121 @@
+import { z } from "zod/v4";
+export declare const slotsTable: import("drizzle-orm/sqlite-core").SQLiteTableWithColumns<{
+    name: "slots";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "id";
+            tableName: "slots";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        doctorId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "doctor_id";
+            tableName: "slots";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        startTime: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "start_time";
+            tableName: "slots";
+            dataType: "date";
+            columnType: "SQLiteTimestamp";
+            data: Date;
+            driverParam: number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        endTime: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "end_time";
+            tableName: "slots";
+            dataType: "date";
+            columnType: "SQLiteTimestamp";
+            data: Date;
+            driverParam: number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        isBooked: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "is_booked";
+            tableName: "slots";
+            dataType: "boolean";
+            columnType: "SQLiteBoolean";
+            data: boolean;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "created_at";
+            tableName: "slots";
+            dataType: "date";
+            columnType: "SQLiteTimestamp";
+            data: Date;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+    };
+    dialect: "sqlite";
+}>;
+export declare const insertSlotSchema: z.ZodObject<{
+    doctorId: z.ZodInt;
+    startTime: z.ZodDate;
+    endTime: z.ZodDate;
+}, {
+    out: {};
+    in: {};
+}>;
+export type InsertSlot = z.infer<typeof insertSlotSchema>;
+export type Slot = typeof slotsTable.$inferSelect;
+//# sourceMappingURL=slots.d.ts.map
