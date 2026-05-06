@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { Router } from "express";
-import { db } from "../db/src/index.js";
-import { slotsTable, doctorsTable, appointmentsTable } from "../db/src/index.js";
+import { db } from "../../db/src/index.js";
+import { slotsTable, doctorsTable, appointmentsTable } from "../../db/src/index.js";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
-import { CreateSlotBody, DeleteSlotParams } from "../zod/src/index.js";
+import { CreateSlotBody, DeleteSlotParams } from "../../zod/src/index.js";
 
 const router: any = Router();
 

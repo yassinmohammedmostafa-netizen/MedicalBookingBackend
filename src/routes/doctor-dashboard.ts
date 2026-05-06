@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { Router } from "express";
-import { db } from "../db/src/index.js";
-import { appointmentsTable, doctorsTable, slotsTable, usersTable } from "../db/src/index.js";
+import { db } from "../../db/src/index.js";
+import { appointmentsTable, doctorsTable, slotsTable, usersTable } from "../../db/src/index.js";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 

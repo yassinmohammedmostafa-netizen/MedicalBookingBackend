@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { Router } from "express";
-import { db } from "../db/src/index.js";
-import { appointmentsTable, doctorsTable, slotsTable, usersTable, messagesTable } from "../db/src/index.js";
+import { db } from "../../db/src/index.js";
+import { appointmentsTable, doctorsTable, slotsTable, usersTable, messagesTable } from "../../db/src/index.js";
 import { eq, and, asc } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import {
@@ -10,7 +10,7 @@ import {
   UpdateAppointmentStatusParams,
   UpdateAppointmentStatusBody,
   GetAppointmentParams,
-} from "../zod/src/index.js";
+} from "../../zod/src/index.js";
 
 const router: any = Router();
 

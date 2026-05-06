@@ -1,6 +1,6 @@
 
-import { db } from "../db/src/index.js";
-import { usersTable, doctorsTable } from "../db/src/index.js";
+import { db } from "../../db/src/index.js";
+import { usersTable, doctorsTable } from "../../db/src/index.js";
 import { hashPassword } from "../lib/auth";
 
 async function createDoctor() {
