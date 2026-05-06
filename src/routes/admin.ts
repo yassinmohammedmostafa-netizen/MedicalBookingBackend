@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { appointmentsTable, doctorsTable, usersTable, slotsTable } from "@workspace/db";
+import { db } from "../db/src/index.js";
+import { appointmentsTable, doctorsTable, usersTable, slotsTable } from "../db/src/index.js";
 import { eq, count, ne, sql } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
-import { CreateAdminUserBody } from "@workspace/api-zod";
+import { CreateAdminUserBody } from "../zod/src/index.js";
 import { hashPassword } from "../lib/auth.js";
 
 const router: any = Router();

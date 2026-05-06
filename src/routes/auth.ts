@@ -1,14 +1,14 @@
 // @ts-nocheck
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { usersTable, doctorsTable, passwordResetTokensTable } from "@workspace/db";
+import { db } from "../db/src/index.js";
+import { usersTable, doctorsTable, passwordResetTokensTable } from "../db/src/index.js";
 import { eq, and, gt } from "drizzle-orm";
 import { hashPassword, comparePassword, signToken } from "../lib/auth.js";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import {
   RegisterUserBody,
   LoginUserBody,
-} from "@workspace/api-zod";
+} from "../zod/src/index.js";
 import { randomBytes } from "crypto";
 import { sendPasswordResetEmail } from "../lib/email.js";
 

@@ -1,5 +1,5 @@
-import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db";
+import { db } from "./db/src/index.js";
+import { usersTable } from "./db/src/index.js";
 import { eq } from "drizzle-orm";
 
 async function check() {

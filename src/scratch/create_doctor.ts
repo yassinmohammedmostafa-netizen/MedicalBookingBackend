@@ -1,6 +1,6 @@
 
-import { db } from "@workspace/db";
-import { usersTable, doctorsTable } from "@workspace/db";
+import { db } from "../db/src/index.js";
+import { usersTable, doctorsTable } from "../db/src/index.js";
 import { hashPassword } from "../lib/auth";
 
 async function createDoctor() {

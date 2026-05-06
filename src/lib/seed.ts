@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { db } from "@workspace/db";
-import { usersTable, doctorsTable, slotsTable } from "@workspace/db";
+import { db } from "../db/src/index.js";
+import { usersTable, doctorsTable, slotsTable } from "../db/src/index.js";
 import { hashPassword } from "./auth";
 import { logger } from "./logger";
 

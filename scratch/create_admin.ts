@@ -1,6 +1,6 @@
 
 import "dotenv/config";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable } from "./db/src/index.js";
 import { hashPassword } from "../src/lib/auth";
 
 async function createAdmin() {

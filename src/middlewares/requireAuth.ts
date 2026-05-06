@@ -7,8 +7,8 @@ export interface AuthRequest extends Request {
   userRole?: string;
 }
 
-import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db";
+import { db } from "../db/src/index.js";
+import { usersTable } from "../db/src/index.js";
 import { eq } from "drizzle-orm";
 
 export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {

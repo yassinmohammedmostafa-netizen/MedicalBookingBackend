@@ -1,9 +1,9 @@
 // @ts-nocheck
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { doctorsTable, usersTable, slotsTable } from "@workspace/db";
+import { db } from "../db/src/index.js";
+import { doctorsTable, usersTable, slotsTable } from "../db/src/index.js";
 import { eq, and, or, like, sql } from "drizzle-orm";
-import { GetDoctorsQueryParams } from "@workspace/api-zod";
+import { GetDoctorsQueryParams } from "../zod/src/index.js";
 
 console.log("[DOCTORS_ROUTE] Tables check:", { doctorsTable: !!doctorsTable, usersTable: !!usersTable, slotsTable: !!slotsTable });
 
