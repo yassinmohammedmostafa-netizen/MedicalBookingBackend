@@ -27,10 +27,8 @@ app.use(
     },
   }),
 );
-app.use(cors({
-  origin: true, // Reflect the request origin, or use a specific list of domains
-  credentials: true
-}));
+app.use(cors());
+app.options("*", cors()); // Explicitly handle preflight for all routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
