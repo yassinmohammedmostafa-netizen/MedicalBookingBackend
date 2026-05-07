@@ -131,7 +131,7 @@ router.post("/auth/register-doctor", async (req, res): Promise<void> => {
   res.status(201).json({ user: userResponse(user), token });
 });
 
-router.get("/auth/verify-email", async (req, res): Promise<void> => {
+router.get(["/auth/verify-email", "/verify-email"], async (req, res): Promise<void> => {
   const { token } = req.query;
   if (!token || typeof token !== "string") {
     res.status(400).json({ error: "Token is required" });
