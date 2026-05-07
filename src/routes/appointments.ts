@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, slotsTable, usersTable, messagesTable } from "../../db/src/index.js";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import {
   CreateAppointmentBody,
@@ -14,81 +14,93 @@ import {
 
 const router: any = Router();
 
-async function formatAppointment(appt: typeof appointmentsTable.$inferSelect) {
-  const slot = appt.slotId
-    ? (await db.select().from(slotsTable).where(eq(slotsTable.id, appt.slotId)))[0]
-    : undefined;
-  const [patient] = await db.select().from(usersTable).where(eq(usersTable.id, appt.patientId));
-  const [doctorRow] = await db
-    .select({
-      doctor: {
-        id: doctorsTable.id,
-        specialty: doctorsTable.specialty,
-        price: doctorsTable.price,
-        paymentInfo: doctorsTable.paymentInfo,
-      },
-      user: {
-        id: usersTable.id,
-        firstName: usersTable.firstName,
-        lastName: usersTable.lastName,
-      }
-    })
-    .from(doctorsTable)
-    .innerJoin(usersTable, eq(doctorsTable.userId, usersTable.id))
-    .where(eq(doctorsTable.id, appt.doctorId));
+// Helper to safely format appointment data with full doctor/patient/slot context
+function formatAppointmentRow(row: any) {
+  const appt = row.appointment;
+  const patient = row.patient;
+  const doctorUser = row.doctorUser;
+  const doctor = row.doctor;
+  const slot = row.slot;
 
-  // For instant sessions (no slot), use createdAt as the start time
-  const startTime = slot?.startTime instanceof Date ? slot.startTime.toISOString() : (slot?.startTime ? new Date(slot.startTime).toISOString() : (appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString()));
-  const endTime = slot?.endTime instanceof Date ? slot.endTime.toISOString() : (slot?.endTime ? new Date(slot.endTime).toISOString() : null);
+  try {
+    // Safely determine start/end times
+    const startTime = slot?.startTime instanceof Date 
+      ? slot.startTime.toISOString() 
+      : (slot?.startTime ? new Date(slot.startTime).toISOString() : (appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString()));
+    
+    const endTime = slot?.endTime instanceof Date 
+      ? slot.endTime.toISOString() 
+      : (slot?.endTime ? new Date(slot.endTime).toISOString() : null);
 
-  return {
-    id: appt.id,
-    patientId: appt.patientId,
-    doctorId: appt.doctorId,
-    slotId: appt.slotId ?? null,
-    isInstant: appt.slotId == null,
-    status: appt.status,
-    isPaid: appt.isPaid,
-    paidAt: appt.paidAt instanceof Date ? appt.paidAt.toISOString() : (appt.paidAt ? new Date(appt.paidAt).toISOString() : null),
-    notes: appt.notes,
-    patientRating: appt.patientRating ?? null,
-    patientReview: appt.patientReview ?? null,
-    patientName: patient ? `${patient.firstName} ${patient.lastName}` : null,
-    patientEmail: patient?.email ?? null,
-    patientPhone: patient?.phone ?? null,
-    doctorName: doctorRow ? `${doctorRow.user.firstName} ${doctorRow.user.lastName}` : null,
-    doctorSpecialty: doctorRow?.doctor.specialty ?? null,
-    doctorPrice: doctorRow?.doctor.price ?? null,
-    doctorPaymentInfo: doctorRow?.doctor.paymentInfo ?? null,
-    startTime,
-    endTime,
-    createdAt: appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString(),
-    cancelledBy: appt.cancelledBy,
-    cancelledAt: appt.cancelledAt instanceof Date ? appt.cancelledAt.toISOString() : (appt.cancelledAt ? new Date(appt.cancelledAt).toISOString() : null),
-    doctorUserId: doctorRow?.user.id ?? null,
-  };
+    return {
+      id: appt.id,
+      patientId: appt.patientId,
+      doctorId: appt.doctorId,
+      slotId: appt.slotId ?? null,
+      isInstant: appt.slotId == null,
+      status: appt.status,
+      isPaid: appt.isPaid,
+      paidAt: appt.paidAt instanceof Date ? appt.paidAt.toISOString() : (appt.paidAt ? new Date(appt.paidAt).toISOString() : null),
+      notes: appt.notes,
+      patientRating: appt.patientRating ?? null,
+      patientReview: appt.patientReview ?? null,
+      patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Unknown Patient",
+      patientEmail: patient?.email ?? null,
+      patientPhone: patient?.phone ?? null,
+      doctorName: doctorUser ? `${doctorUser.firstName} ${doctorUser.lastName}` : "Unknown Doctor",
+      doctorSpecialty: doctor?.specialty ?? null,
+      doctorPrice: doctor?.price ?? null,
+      doctorPaymentInfo: doctor?.paymentInfo ?? null,
+      startTime,
+      endTime,
+      createdAt: appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString(),
+      cancelledBy: appt.cancelledBy,
+      cancelledAt: appt.cancelledAt instanceof Date ? appt.cancelledAt.toISOString() : (appt.cancelledAt ? new Date(appt.cancelledAt).toISOString() : null),
+      doctorUserId: doctorUser?.id ?? null,
+    };
+  } catch (err) {
+    console.error("[FORMAT_APPT] Formatting error for appt ID:", appt.id, err);
+    return { id: appt.id, error: "Formatting failed" };
+  }
 }
 
 router.get("/appointments", requireAuth, async (req: AuthRequest, res): Promise<void> => {
-  let appointments: typeof appointmentsTable.$inferSelect[];
+  try {
+    const baseQuery = db
+      .select({
+        appointment: appointmentsTable,
+        patient: usersTable,
+        doctor: doctorsTable,
+        doctorUser: sql`d_users`,
+        slot: slotsTable,
+      })
+      .from(appointmentsTable)
+      .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+      .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+      .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+      .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id));
 
-  if (req.userRole === "patient") {
-    appointments = await db.select().from(appointmentsTable).where(eq(appointmentsTable.patientId, req.userId!));
-  } else if (req.userRole === "doctor") {
-    const [doctor] = await db.select().from(doctorsTable).where(eq(doctorsTable.userId, req.userId!));
-    if (!doctor) {
-      res.json([]);
+    let rows;
+    if (req.userRole === "patient") {
+      rows = await baseQuery.where(eq(appointmentsTable.patientId, req.userId!));
+    } else if (req.userRole === "doctor") {
+      const [doctor] = await db.select().from(doctorsTable).where(eq(doctorsTable.userId, req.userId!));
+      if (!doctor) {
+        res.json([]);
+        return;
+      }
+      rows = await baseQuery.where(eq(appointmentsTable.doctorId, doctor.id));
+    } else {
+      res.status(403).json({ error: "Admins should use /api/admin/appointments" });
       return;
     }
-    appointments = await db.select().from(appointmentsTable).where(eq(appointmentsTable.doctorId, doctor.id));
-  } else {
-    // Admins must use /admin/appointments — avoid duplicate cache entries
-    res.status(403).json({ error: "Admins should use /api/admin/appointments" });
-    return;
-  }
 
-  const formatted = await Promise.all(appointments.map(formatAppointment));
-  res.json(formatted);
+    const formatted = rows.map(formatAppointmentRow);
+    res.json(formatted);
+  } catch (err) {
+    console.error("[GET_APPOINTMENTS] Error:", err);
+    res.status(500).json({ error: "Failed to fetch appointments" });
+  }
 });
 
 router.post("/appointments", requireAuth, requireRole("patient"), async (req: AuthRequest, res): Promise<void> => {
@@ -130,7 +142,23 @@ router.post("/appointments", requireAuth, requireRole("patient"), async (req: Au
       content: `Thank you for booking an instant session! Please complete your payment via ${doctor.paymentInfo || "InstaPay or your preferred method"} and share the receipt here for verification.`,
     });
 
-    res.status(201).json(await formatAppointment(appointment));
+    // Fetch the fully joined appointment data to return to the client
+    const [row] = await db
+      .select({
+        appointment: appointmentsTable,
+        patient: usersTable,
+        doctor: doctorsTable,
+        doctorUser: sql`d_users`,
+        slot: slotsTable,
+      })
+      .from(appointmentsTable)
+      .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+      .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+      .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+      .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+      .where(eq(appointmentsTable.id, appointment.id));
+
+    res.status(201).json(formatAppointmentRow(row));
     return;
   }
 
@@ -165,7 +193,23 @@ router.post("/appointments", requireAuth, requireRole("patient"), async (req: Au
     content: `Thank you for booking! Please complete your payment via ${doctor.paymentInfo || "InstaPay or your preferred method"} and share the receipt here to confirm your session.`,
   });
 
-  res.status(201).json(await formatAppointment(appointment));
+  // Fetch the fully joined appointment data
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, appointment.id));
+
+  res.status(201).json(formatAppointmentRow(row));
 });
 
 router.get("/appointments/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -181,7 +225,22 @@ router.get("/appointments/:id", requireAuth, async (req: AuthRequest, res): Prom
     return;
   }
 
-  res.json(await formatAppointment(appt));
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, appt.id));
+
+  res.json(formatAppointmentRow(row));
 });
 
 router.patch("/appointments/:id/mark-paid", requireAuth, requireRole("doctor", "admin"), async (req: AuthRequest, res): Promise<void> => {
@@ -230,7 +289,22 @@ router.patch("/appointments/:id/mark-paid", requireAuth, requireRole("doctor", "
       ));
   }
 
-  res.json(await formatAppointment(updated));
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, updated.id));
+
+  res.json(formatAppointmentRow(row));
 });
 
 router.patch("/appointments/:id/mark-unpaid", requireAuth, requireRole("admin"), async (req: AuthRequest, res): Promise<void> => {
@@ -252,7 +326,22 @@ router.patch("/appointments/:id/mark-unpaid", requireAuth, requireRole("admin"),
     .where(eq(appointmentsTable.id, params.data.id))
     .returning();
 
-  res.json(await formatAppointment(updated));
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, updated.id));
+
+  res.json(formatAppointmentRow(row));
 });
 
 router.patch("/appointments/:id/status", requireAuth, requireRole("doctor", "admin"), async (req: AuthRequest, res): Promise<void> => {
@@ -289,7 +378,22 @@ router.patch("/appointments/:id/status", requireAuth, requireRole("doctor", "adm
     .where(eq(appointmentsTable.id, params.data.id))
     .returning();
 
-  res.json(await formatAppointment(updated));
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, updated.id));
+
+  res.json(formatAppointmentRow(row));
 });
 
 router.patch("/appointments/:id/cancel", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -327,7 +431,22 @@ router.patch("/appointments/:id/cancel", requireAuth, async (req: AuthRequest, r
     await db.update(slotsTable).set({ isBooked: false }).where(eq(slotsTable.id, appt.slotId));
   }
 
-  res.json(await formatAppointment(updated));
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, updated.id));
+
+  res.json(formatAppointmentRow(row));
 });
 
 router.get("/appointments/:id/messages", requireAuth, async (req: AuthRequest, res): Promise<void> => {
@@ -424,7 +543,22 @@ router.patch("/appointments/:id/rate", requireAuth, requireRole("patient"), asyn
       .where(eq(doctorsTable.id, appt.doctorId));
   }
 
-  res.json(await formatAppointment(updated));
+  const [row] = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(eq(appointmentsTable.id, updated.id));
+
+  res.json(formatAppointmentRow(row));
 });
 
 router.get("/calendar", requireAuth, requireRole("doctor", "admin"), async (req: AuthRequest, res): Promise<void> => {
@@ -441,7 +575,29 @@ router.get("/calendar", requireAuth, requireRole("doctor", "admin"), async (req:
     appointments = await db.select().from(appointmentsTable).where(eq(appointmentsTable.isPaid, true));
   }
 
-  const formatted = await Promise.all(appointments.map(formatAppointment));
+  if (appointments.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const rows = await db
+    .select({
+      appointment: appointmentsTable,
+      patient: usersTable,
+      doctor: doctorsTable,
+      doctorUser: sql`d_users`,
+      slot: slotsTable,
+    })
+    .from(appointmentsTable)
+    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
+    .where(and(
+      eq(appointmentsTable.id, sql`ANY(${appointments.map(a => a.id)})`)
+    ));
+
+  const formatted = rows.map(formatAppointmentRow);
   res.json(formatted);
 });
 

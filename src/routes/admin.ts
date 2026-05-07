@@ -10,71 +10,74 @@ import { hashPassword } from "../lib/auth.js";
 const router: any = Router();
 
 router.get("/admin/appointments", requireAuth, requireRole("admin"), async (req: AuthRequest, res): Promise<void> => {
-  const { doctorName, patientName, date } = req.query;
-  
-  const appointments = await db.select().from(appointmentsTable);
-
-  let formatted = await Promise.all(appointments.map(async (appt) => {
-    const slot = appt.slotId
-      ? (await db.select().from(slotsTable).where(eq(slotsTable.id, appt.slotId)))[0]
-      : undefined;
-    const [patient] = await db.select().from(usersTable).where(eq(usersTable.id, appt.patientId));
-    const [doctorRow] = await db
+  try {
+    const { doctorName, patientName, date } = req.query;
+    
+    const rows = await db
       .select({
-        doctor: {
-          id: doctorsTable.id,
-          specialty: doctorsTable.specialty,
-          price: doctorsTable.price,
-        },
-        user: {
-          firstName: usersTable.firstName,
-          lastName: usersTable.lastName,
-        }
+        appointment: appointmentsTable,
+        patient: usersTable,
+        doctor: doctorsTable,
+        doctorUser: sql`d_users`,
+        slot: slotsTable,
       })
-      .from(doctorsTable)
-      .innerJoin(usersTable, eq(doctorsTable.userId, usersTable.id))
-      .where(eq(doctorsTable.id, appt.doctorId));
+      .from(appointmentsTable)
+      .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
+      .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+      .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+      .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id));
 
-    const startTime = (slot?.startTime instanceof Date ? slot.startTime.toISOString() : (slot?.startTime ? new Date(slot.startTime).toISOString() : (appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString())));
-    const endTime = slot?.endTime instanceof Date ? slot.endTime.toISOString() : (slot?.endTime ? new Date(slot.endTime).toISOString() : null);
+    let formatted = rows.map(row => {
+      const appt = row.appointment;
+      const patient = row.patient;
+      const doctorUser = row.doctorUser;
+      const doctor = row.doctor;
+      const slot = row.slot;
 
-    return {
-      id: appt.id,
-      patientId: appt.patientId,
-      doctorId: appt.doctorId,
-      slotId: appt.slotId ?? null,
-      isInstant: appt.slotId == null,
-      status: appt.status,
-      isPaid: appt.isPaid,
-      paidAt: appt.paidAt instanceof Date ? appt.paidAt.toISOString() : (appt.paidAt ? new Date(appt.paidAt).toISOString() : null),
-      notes: appt.notes,
-      patientName: patient ? `${patient.firstName} ${patient.lastName}` : null,
-      patientEmail: patient?.email ?? null,
-      patientPhone: patient?.phone ?? null,
-      doctorName: doctorRow ? `${doctorRow.user.firstName} ${doctorRow.user.lastName}` : null,
-      doctorSpecialty: doctorRow?.doctor.specialty ?? null,
-      doctorPrice: doctorRow?.doctor.price ?? null,
-      startTime,
-      endTime,
-      createdAt: appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString(),
-    };
-  }));
+      const startTime = (slot?.startTime instanceof Date ? slot.startTime.toISOString() : (slot?.startTime ? new Date(slot.startTime).toISOString() : (appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString())));
+      const endTime = slot?.endTime instanceof Date ? slot.endTime.toISOString() : (slot?.endTime ? new Date(slot.endTime).toISOString() : null);
 
-  // Client-side filtering for simplicity given the current structure
-  if (doctorName) {
-    const q = (doctorName as string).toLowerCase();
-    formatted = formatted.filter(a => a.doctorName?.toLowerCase().includes(q));
+      return {
+        id: appt.id,
+        patientId: appt.patientId,
+        doctorId: appt.doctorId,
+        slotId: appt.slotId ?? null,
+        isInstant: appt.slotId == null,
+        status: appt.status,
+        isPaid: appt.isPaid,
+        paidAt: appt.paidAt instanceof Date ? appt.paidAt.toISOString() : (appt.paidAt ? new Date(appt.paidAt).toISOString() : null),
+        notes: appt.notes,
+        patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Unknown",
+        patientEmail: patient?.email ?? null,
+        patientPhone: patient?.phone ?? null,
+        doctorName: doctorUser ? `${doctorUser.firstName} ${doctorUser.lastName}` : "Unknown",
+        doctorSpecialty: doctor?.specialty ?? null,
+        doctorPrice: doctor?.price ?? null,
+        startTime,
+        endTime,
+        createdAt: appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString(),
+      };
+    });
+
+    // Client-side filtering
+    if (doctorName) {
+      const q = (doctorName as string).toLowerCase();
+      formatted = formatted.filter(a => a.doctorName?.toLowerCase().includes(q));
+    }
+    if (patientName) {
+      const q = (patientName as string).toLowerCase();
+      formatted = formatted.filter(a => a.patientName?.toLowerCase().includes(q));
+    }
+    if (date) {
+      const d = (date as string);
+      formatted = formatted.filter(a => a.startTime?.startsWith(d));
+    }
+
+    res.json(formatted);
+  } catch (err) {
+    console.error("[ADMIN_APPOINTMENTS] Error:", err);
+    res.status(500).json({ error: "Failed to fetch admin appointments" });
   }
-  if (patientName) {
-    const q = (patientName as string).toLowerCase();
-    formatted = formatted.filter(a => a.patientName?.toLowerCase().includes(q));
-  }
-  if (date) {
-    const d = (date as string); // Expected YYYY-MM-DD
-    formatted = formatted.filter(a => a.startTime?.startsWith(d));
-  }
-
-  res.json(formatted);
 });
 
 router.get("/admin/doctors", requireAuth, requireRole("admin"), async (_req: AuthRequest, res): Promise<void> => {
@@ -434,45 +437,50 @@ router.delete("/admin/users/:id", requireAuth, requireRole("admin"), async (req:
 });
 
 router.get("/admin/stats", requireAuth, requireRole("admin"), async (_req: AuthRequest, res): Promise<void> => {
-  const [patientStats] = await db.select({ totalPatients: count() }).from(usersTable).where(eq(usersTable.role, "patient"));
-  const [doctorStats] = await db.select({ totalDoctors: count() }).from(usersTable).where(eq(usersTable.role, "doctor"));
-  const [apptStats] = await db.select({ totalAppointments: count() }).from(appointmentsTable);
-  const [paidStats] = await db.select({ paidAppointments: count() }).from(appointmentsTable).where(eq(appointmentsTable.isPaid, true));
-  const [pendingStats] = await db.select({ pendingAppointments: count() }).from(appointmentsTable).where(eq(appointmentsTable.status, "pending"));
+  try {
+    // 1. Fetch Basic Counts efficiently
+    const [stats] = await db.select({
+      totalPatients: sql<number>`count(CASE WHEN role = 'patient' THEN 1 END)`,
+      totalDoctors: sql<number>`count(CASE WHEN role = 'doctor' THEN 1 END)`,
+    }).from(usersTable);
 
-  const totalPatients = patientStats?.totalPatients ?? 0;
-  const totalDoctors = doctorStats?.totalDoctors ?? 0;
-  const totalAppointments = apptStats?.totalAppointments ?? 0;
-  const paidAppointments = paidStats?.paidAppointments ?? 0;
-  const pendingAppointments = pendingStats?.pendingAppointments ?? 0;
+    const [apptCounts] = await db.select({
+      totalAppointments: sql<number>`count(*)`,
+      paidAppointments: sql<number>`count(CASE WHEN is_paid = true THEN 1 END)`,
+      pendingAppointments: sql<number>`count(CASE WHEN status = 'pending' THEN 1 END)`,
+    }).from(appointmentsTable);
 
-  const paidAppts = await db.select({ price: doctorsTable.price }).from(appointmentsTable)
-    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
-    .where(eq(appointmentsTable.isPaid, true));
+    // 2. Fetch Total Revenue
+    const [revenueStats] = await db.select({
+      totalRevenue: sql<number>`sum(${doctorsTable.price})`
+    }).from(appointmentsTable)
+      .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
+      .where(eq(appointmentsTable.isPaid, true));
 
-  const totalRevenue = paidAppts.reduce((sum, a) => sum + a.price, 0);
+    // 3. Fetch Pending Profile Changes
+    const [pendingProfileStats] = await db.select({ count: count() }).from(doctorsTable).where(
+      sql`${doctorsTable.pendingBio} IS NOT NULL OR 
+          ${doctorsTable.pendingPrice} IS NOT NULL OR 
+          ${doctorsTable.pendingAvatarUrl} IS NOT NULL OR 
+          ${doctorsTable.pendingSpecialty} IS NOT NULL OR 
+          ${doctorsTable.pendingLanguages} IS NOT NULL OR 
+          ${doctorsTable.pendingGender} IS NOT NULL OR 
+          ${doctorsTable.pendingPaymentInfo} IS NOT NULL`
+    );
 
-  const [pendingProfileStats] = await db.select({ count: count() }).from(doctorsTable).where(
-    sql`${doctorsTable.pendingBio} IS NOT NULL OR 
-        ${doctorsTable.pendingPrice} IS NOT NULL OR 
-        ${doctorsTable.pendingAvatarUrl} IS NOT NULL OR 
-        ${doctorsTable.pendingSpecialty} IS NOT NULL OR 
-        ${doctorsTable.pendingLanguages} IS NOT NULL OR 
-        ${doctorsTable.pendingGender} IS NOT NULL OR 
-        ${doctorsTable.pendingPaymentInfo} IS NOT NULL`
-  );
-
-  const pendingProfileChanges = pendingProfileStats?.count ?? 0;
-
-  res.json({
-    totalPatients,
-    totalDoctors,
-    totalAppointments,
-    paidAppointments,
-    pendingAppointments,
-    totalRevenue,
-    pendingProfileChanges,
-  });
+    res.json({
+      totalPatients: stats?.totalPatients ?? 0,
+      totalDoctors: stats?.totalDoctors ?? 0,
+      totalAppointments: apptCounts?.totalAppointments ?? 0,
+      paidAppointments: apptCounts?.paidAppointments ?? 0,
+      pendingAppointments: apptCounts?.pendingAppointments ?? 0,
+      totalRevenue: revenueStats?.totalRevenue ?? 0,
+      pendingProfileChanges: pendingProfileStats?.count ?? 0,
+    });
+  } catch (err) {
+    console.error("[ADMIN_STATS] Error:", err);
+    res.status(500).json({ error: "Failed to fetch stats", details: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 router.get("/admin/reviews", requireAuth, requireRole("admin"), async (_req: AuthRequest, res): Promise<void> => {

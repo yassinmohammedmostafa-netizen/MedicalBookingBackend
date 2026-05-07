@@ -18,7 +18,12 @@ let dbInstance: any;
 
 export const getDb = () => {
   if (!dbInstance) {
-    client = postgres(getConnectionString(), { prepare: false });
+    client = postgres(getConnectionString(), { 
+      prepare: false, 
+      max: 5,
+      connect_timeout: 10, // 10 seconds timeout
+      idle_timeout: 20,    // 20 seconds idle timeout
+    });
     dbInstance = drizzle(client, { schema });
     
     // Debug: Log existing tables

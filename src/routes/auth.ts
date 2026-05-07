@@ -60,13 +60,12 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     emailVerificationToken,
   }).returning();
 
-  try {
-    const { sendEmailVerificationEmail } = await import("../lib/email.js");
-    await sendEmailVerificationEmail(user.email, emailVerificationToken);
-    console.log(`[AUTH] Verification email sent to ${user.email}`);
-  } catch (err) {
-    console.error(`[AUTH] Failed to send verification email to ${user.email}:`, err);
-  }
+  // Send verification email in background to prevent hanging
+  import("../lib/email.js").then(({ sendEmailVerificationEmail }) => {
+    sendEmailVerificationEmail(user.email, emailVerificationToken)
+      .then(() => console.log(`[AUTH] Verification email sent to ${user.email}`))
+      .catch(err => console.error(`[AUTH] Failed to send verification email to ${user.email}:`, err));
+  });
 
   const token = signToken({ userId: user.id, role: user.role, passwordHash: user.passwordHash });
   res.status(201).json({ user: userResponse(user), token });
@@ -119,13 +118,12 @@ router.post("/auth/register-doctor", async (req, res): Promise<void> => {
     isApproved: false,
   });
 
-  try {
-    const { sendEmailVerificationEmail } = await import("../lib/email.js");
-    await sendEmailVerificationEmail(user.email, emailVerificationToken);
-    console.log(`[AUTH] Verification email sent to ${user.email}`);
-  } catch (err) {
-    console.error(`[AUTH] Failed to send verification email to ${user.email}:`, err);
-  }
+  // Send verification email in background
+  import("../lib/email.js").then(({ sendEmailVerificationEmail }) => {
+    sendEmailVerificationEmail(user.email, emailVerificationToken)
+      .then(() => console.log(`[AUTH] Verification email sent to ${user.email}`))
+      .catch(err => console.error(`[AUTH] Failed to send verification email to ${user.email}:`, err));
+  });
 
   const token = signToken({ userId: user.id, role: user.role, passwordHash: user.passwordHash });
   res.status(201).json({ user: userResponse(user), token });
