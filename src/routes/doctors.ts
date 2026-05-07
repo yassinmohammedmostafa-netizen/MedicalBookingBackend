@@ -54,7 +54,9 @@ router.get("/doctors", async (req, res): Promise<void> => {
     if (onlineOrImmediate) conditions.push(onlineOrImmediate);
   }
   if (filters.freeConsultation === "true") conditions.push(eq(doctorsTable.freeConsultation, true));
-  if (filters.specialty) conditions.push(like(doctorsTable.specialty, `%${filters.specialty}%`));
+  if (filters.specialty) {
+    conditions.push(sql`${doctorsTable.specialty} @> ${JSON.stringify([filters.specialty])}::jsonb`);
+  }
 
   const results = await db
     .select({

@@ -1,7 +1,7 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, timestamp, serial } from "drizzle-orm/pg-core";
 
-export const messagesTable = sqliteTable("messages", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const messagesTable = pgTable("messages", {
+  id: serial("id").primaryKey(),
   appointmentId: integer("appointment_id").notNull(),
   senderId: integer("sender_id").notNull(),
   senderName: text("sender_name").notNull(),
@@ -9,7 +9,7 @@ export const messagesTable = sqliteTable("messages", {
   content: text("content").notNull(),
   type: text("type").notNull().default("text"),
   fileUrl: text("file_url"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export type Message = typeof messagesTable.$inferSelect;
