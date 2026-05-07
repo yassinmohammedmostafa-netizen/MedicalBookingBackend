@@ -35,7 +35,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("uploads"));
 
-app.use("/api", router);
+// Handle both /api and direct routes to be safe on Vercel
 app.use("/", router);
+app.use("/api", router);
 
 export default app;
