@@ -124,34 +124,84 @@ router.post("/appointments", requireAuth, requireRole("patient"), async (req: Au
 
   const { slotId, doctorId, notes } = parsed.data;
 
-  const [doctor] = await db.select().from(doctorsTable).where(eq(doctorsTable.id, doctorId));
-  if (!doctor) {
-    res.status(400).json({ error: "Doctor not found" });
-    return;
-  }
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [doctor] = await tx.select().from(doctorsTable).where(eq(doctorsTable.id, doctorId)).for("update");
+      if (!doctor) {
+        throw { status: 400, message: "Doctor not found" };
+      }
 
-  // Instant booking — no slotId provided
-  if (slotId == null) {
-    if (!doctor.isOnline && !doctor.immediateAvailable) {
-      res.status(400).json({ error: "Doctor is not available for instant sessions right now" });
-      return;
-    }
+      // Instant booking — no slotId provided
+      if (slotId == null) {
+        if (!doctor.isOnline && !doctor.immediateAvailable) {
+          throw { status: 400, message: "Doctor is not available for instant sessions right now" };
+        }
 
-    const [appointment] = await db.insert(appointmentsTable).values({
-      patientId: req.userId!,
-      doctorId,
-      slotId: null,
-      notes: notes ?? null,
-      status: "confirmed",
-    }).returning();
+        // CHECK IF DOCTOR IS ALREADY IN AN ACTIVE INSTANT SESSION
+        const [activeInstant] = await tx
+          .select()
+          .from(appointmentsTable)
+          .where(and(
+            eq(appointmentsTable.doctorId, doctorId),
+            eq(appointmentsTable.slotId, null),
+            or(eq(appointmentsTable.status, "pending"), eq(appointmentsTable.status, "confirmed"))
+          ))
+          .limit(1);
 
-    // Automated first message
-    await db.insert(messagesTable).values({
-      appointmentId: appointment.id,
-      senderId: 1,
-      senderName: "System",
-      senderRole: "admin",
-      content: `Thank you for booking an instant session! Please complete your payment via ${doctor.paymentInfo || "InstaPay or your preferred method"} and share the receipt here for verification.`,
+        if (activeInstant) {
+          throw { status: 400, message: "Doctor is currently busy with another instant session. Please try again in a few minutes." };
+        }
+
+        const [appointment] = await tx.insert(appointmentsTable).values({
+          patientId: req.userId!,
+          doctorId,
+          slotId: null,
+          notes: notes ?? null,
+          status: "confirmed",
+        }).returning();
+
+        // Automated first message
+        await tx.insert(messagesTable).values({
+          appointmentId: appointment.id,
+          senderId: 1,
+          senderName: "System",
+          senderRole: "admin",
+          content: `Thank you for booking an instant session! Please complete your payment via ${doctor.paymentInfo || "InstaPay or your preferred method"} and share the receipt here for verification.`,
+        });
+
+        return appointment;
+      }
+
+      // Slot-based booking
+      const [slot] = await tx.select().from(slotsTable).where(and(eq(slotsTable.id, slotId), eq(slotsTable.doctorId, doctorId))).for("update");
+      if (!slot) {
+        throw { status: 400, message: "Slot not found for this doctor" };
+      }
+      if (slot.isBooked) {
+        throw { status: 400, message: "Slot is already booked" };
+      }
+
+      const [appointment] = await tx.insert(appointmentsTable).values({
+        patientId: req.userId!,
+        doctorId,
+        slotId,
+        notes: notes ?? null,
+        status: "pending",
+      }).returning();
+
+      // MARK SLOT AS BOOKED IMMEDIATELY to prevent double booking
+      await tx.update(slotsTable).set({ isBooked: true }).where(eq(slotsTable.id, slotId));
+
+      // Automated first message
+      await tx.insert(messagesTable).values({
+        appointmentId: appointment.id,
+        senderId: 1,
+        senderName: "System",
+        senderRole: "admin",
+        content: `Thank you for your booking! Please complete your payment via ${doctor.paymentInfo || "InstaPay or your preferred method"} and share the receipt here for verification. Your slot is now reserved.`,
+      });
+
+      return appointment;
     });
 
     // Fetch the fully joined appointment data to return to the client
@@ -168,61 +218,15 @@ router.post("/appointments", requireAuth, requireRole("patient"), async (req: Au
       .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
       .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
       .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
-      .where(eq(appointmentsTable.id, appointment.id));
+      .where(eq(appointmentsTable.id, result.id));
 
     res.status(201).json(formatAppointmentRow(row));
-    return;
+  } catch (err: any) {
+    console.error("[POST_APPOINTMENTS] Error:", err);
+    res.status(err.status || 500).json({ error: err.message || "Failed to create appointment" });
   }
-
-  // Slot-based booking
-  const [slot] = await db.select().from(slotsTable).where(and(eq(slotsTable.id, slotId), eq(slotsTable.doctorId, doctorId)));
-  if (!slot) {
-    res.status(400).json({ error: "Slot not found for this doctor" });
-    return;
-  }
-  if (slot.isBooked) {
-    res.status(400).json({ error: "Slot is already booked" });
-    return;
-  }
-
-  const [appointment] = await db.insert(appointmentsTable).values({
-    patientId: req.userId!,
-    doctorId,
-    slotId,
-    notes: notes ?? null,
-    status: "pending",
-  }).returning();
-
-  // WE NO LONGER MARK SLOT AS BOOKED IMMEDIATELY. 
-  // It only happens when the appointment is marked as paid.
-
-  // Automated first message
-  await db.insert(messagesTable).values({
-    appointmentId: appointment.id,
-    senderId: 1, // Admin or system user ID (Assuming 1 is admin)
-    senderName: "System",
-    senderRole: "admin",
-    content: `Thank you for booking! Please complete your payment via ${doctor.paymentInfo || "InstaPay or your preferred method"} and share the receipt here to confirm your session.`,
-  });
-
-  // Fetch the fully joined appointment data
-  const [row] = await db
-    .select({
-      appointment: appointmentsTable,
-      patient: usersTable,
-      doctor: doctorsTable,
-      doctorUser: sql`d_users`,
-      slot: slotsTable,
-    })
-    .from(appointmentsTable)
-    .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
-    .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
-    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
-    .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
-    .where(eq(appointmentsTable.id, appointment.id));
-
-  res.status(201).json(formatAppointmentRow(row));
 });
+
 
 router.get("/appointments/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const params = GetAppointmentParams.safeParse(req.params);
