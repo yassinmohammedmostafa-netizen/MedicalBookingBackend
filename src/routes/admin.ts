@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, usersTable, slotsTable } from "../../db/src/index.js";
-import { eq, count, ne, sql, isNotNull, aliasedTable } from "drizzle-orm";
+import { eq, and, count, ne, sql, isNotNull, aliasedTable } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import { CreateAdminUserBody } from "../../zod/src/index.js";
 import { hashPassword } from "../lib/auth.js";
@@ -485,8 +485,11 @@ router.get("/admin/stats", requireAuth, requireRole("admin"), async (_req: AuthR
   }
 });
 
-router.get("/admin/reviews", requireAuth, requireRole("admin"), async (_req: AuthRequest, res): Promise<void> => {
-  const reviews = await db
+router.get("/admin/reviews", requireAuth, requireRole("admin"), async (req: AuthRequest, res): Promise<void> => {
+  const { doctorId } = req.query;
+  const dId = doctorId ? parseInt(doctorId as string, 10) : null;
+
+  const query = db
     .select({
       appointmentId: appointmentsTable.id,
       patientRating: appointmentsTable.patientRating,
@@ -500,7 +503,13 @@ router.get("/admin/reviews", requireAuth, requireRole("admin"), async (_req: Aut
     .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
     .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
     .innerJoin(dUsers, eq(doctorsTable.userId, dUsers.id))
-    .where(isNotNull(appointmentsTable.patientRating));
+    .where(
+      dId 
+        ? and(isNotNull(appointmentsTable.patientRating), eq(appointmentsTable.doctorId, dId))
+        : isNotNull(appointmentsTable.patientRating)
+    );
+
+  const reviews = await query;
 
   res.json(reviews.map(r => ({
     ...r,
