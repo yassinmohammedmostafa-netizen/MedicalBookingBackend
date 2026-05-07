@@ -202,7 +202,7 @@ export async function sendEmailVerificationEmail(
   token: string
 ): Promise<void> {
   const subject = "Verify your Esaal account";
-  const appUrl = process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:8080");
+  const appUrl = process.env.APP_URL || "https://medicalbookinghub.vercel.app";
   const verificationLink = `${appUrl}/verify-email?token=${token}`;
 
   const text = `Welcome to Esaal! Please verify your email address by clicking the link below:\n\n${verificationLink}\n\nIf you didn't create an account, you can safely ignore this email.`;
