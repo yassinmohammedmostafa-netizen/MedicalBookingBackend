@@ -21,5 +21,5 @@ export const appointmentsTable = pgTable("appointments", {
 });
 
 export const insertAppointmentSchema = createInsertSchema(appointmentsTable).omit({ id: true, createdAt: true, updatedAt: true, isPaid: true, paidAt: true });
-export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type InsertAppointment = typeof appointmentsTable.$inferInsert;
 export type Appointment = typeof appointmentsTable.$inferSelect;

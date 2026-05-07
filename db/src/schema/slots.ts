@@ -12,5 +12,5 @@ export const slotsTable = pgTable("slots", {
 });
 
 export const insertSlotSchema = createInsertSchema(slotsTable).omit({ id: true, createdAt: true, isBooked: true });
-export type InsertSlot = z.infer<typeof insertSlotSchema>;
+export type InsertSlot = typeof slotsTable.$inferInsert;
 export type Slot = typeof slotsTable.$inferSelect;

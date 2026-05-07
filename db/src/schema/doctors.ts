@@ -39,5 +39,5 @@ export const doctorsTable = pgTable("doctors", {
 });
 
 export const insertDoctorSchema = createInsertSchema(doctorsTable).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertDoctor = z.infer<typeof insertDoctorSchema>;
+export type InsertDoctor = typeof doctorsTable.$inferInsert;
 export type Doctor = typeof doctorsTable.$inferSelect;
