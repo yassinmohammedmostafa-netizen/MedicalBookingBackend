@@ -1,13 +1,13 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, timestamp, serial } from "drizzle-orm/pg-core";
 import { usersTable } from "./users.js";
 
-export const passwordResetTokensTable = sqliteTable("password_reset_tokens", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const passwordResetTokensTable = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  usedAt: integer("used_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export type PasswordResetToken = typeof passwordResetTokensTable.$inferSelect;

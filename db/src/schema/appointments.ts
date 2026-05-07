@@ -1,23 +1,23 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, boolean, timestamp, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
-export const appointmentsTable = sqliteTable("appointments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const appointmentsTable = pgTable("appointments", {
+  id: serial("id").primaryKey(),
   patientId: integer("patient_id").notNull(),
   doctorId: integer("doctor_id").notNull(),
   slotId: integer("slot_id"),
   status: text("status").notNull().default("pending"),
-  isPaid: integer("is_paid", { mode: "boolean" }).notNull().default(false),
-  paidAt: integer("paid_at", { mode: "timestamp" }),
+  isPaid: boolean("is_paid").notNull().default(false),
+  paidAt: timestamp("paid_at"),
   notes: text("notes"),
   patientRating: integer("patient_rating"),
   patientReview: text("patient_review"),
-  isReviewApproved: integer("is_review_approved", { mode: "boolean" }).notNull().default(false),
-  cancelledBy: integer("cancelled_by"), // ID of user who cancelled
-  cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().defaultNow(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().defaultNow(),
+  isReviewApproved: boolean("is_review_approved").notNull().default(false),
+  cancelledBy: integer("cancelled_by"),
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertAppointmentSchema = createInsertSchema(appointmentsTable).omit({ id: true, createdAt: true, updatedAt: true, isPaid: true, paidAt: true });
