@@ -521,7 +521,7 @@ router.post("/appointments/:id/messages", requireAuth, async (req: AuthRequest, 
   res.status(201).json(message);
 });
 
-router.patch("/appointments/:id/rate", requireAuth, requireRole("patient"), async (req: AuthRequest, res): Promise<void> => {
+router.post("/appointments/:id/rate", requireAuth, requireRole("patient"), async (req: AuthRequest, res): Promise<void> => {
   const appointmentId = parseInt(req.params.id as string, 10);
   if (isNaN(appointmentId)) { res.status(400).json({ error: "Invalid appointment id" }); return; }
 
