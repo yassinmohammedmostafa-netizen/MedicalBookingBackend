@@ -484,7 +484,7 @@ router.get("/admin/reviews", requireAuth, requireRole("admin"), async (_req: Aut
       isReviewApproved: appointmentsTable.isReviewApproved,
       createdAt: appointmentsTable.createdAt,
       patientName: sql<string>`${usersTable.firstName} || ' ' || ${usersTable.lastName}`,
-      doctorName: sql<string>`d_users.firstName || ' ' || d_users.lastName`,
+      doctorName: sql<string>`d_users.first_name || ' ' || d_users.last_name`,
     })
     .from(appointmentsTable)
     .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
