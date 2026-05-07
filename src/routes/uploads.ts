@@ -11,7 +11,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB limit for Base64 efficiency
+    fileSize: 10 * 1024 * 1024, // 10MB limit for high-res images
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png/;
