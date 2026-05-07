@@ -24,13 +24,20 @@ function formatAppointmentRow(row: any) {
 
   try {
     // Safely determine start/end times
-    const startTime = slot?.startTime instanceof Date 
-      ? slot.startTime.toISOString() 
-      : (slot?.startTime ? new Date(slot.startTime).toISOString() : (appt.createdAt instanceof Date ? appt.createdAt.toISOString() : new Date(appt.createdAt).toISOString()));
+    const start = slot?.startTime instanceof Date 
+      ? slot.startTime 
+      : (slot?.startTime ? new Date(slot.startTime) : (appt.createdAt instanceof Date ? appt.createdAt : new Date(appt.createdAt)));
     
-    const endTime = slot?.endTime instanceof Date 
-      ? slot.endTime.toISOString() 
-      : (slot?.endTime ? new Date(slot.endTime).toISOString() : null);
+    const startTime = start.toISOString();
+    
+    let endTime;
+    if (slot?.endTime) {
+      endTime = slot.endTime instanceof Date ? slot.endTime.toISOString() : new Date(slot.endTime).toISOString();
+    } else {
+      // Default 1 hour duration for instant sessions to ensure they show up on calendars
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      endTime = end.toISOString();
+    }
 
     return {
       id: appt.id,
