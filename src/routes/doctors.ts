@@ -4,6 +4,7 @@ import { db } from "../../db/src/index.js";
 import { doctorsTable, usersTable, slotsTable, appointmentsTable } from "../../db/src/index.js";
 import { eq, and, or, like, sql } from "drizzle-orm";
 import { GetDoctorsQueryParams } from "../../zod/src/index.js";
+import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 
 console.log("[DOCTORS_ROUTE] Tables check:", { doctorsTable: !!doctorsTable, usersTable: !!usersTable, slotsTable: !!slotsTable });
 

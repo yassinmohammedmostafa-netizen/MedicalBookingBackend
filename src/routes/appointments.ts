@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, slotsTable, usersTable, messagesTable } from "../../db/src/index.js";
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import {
   CreateAppointmentBody,
@@ -605,9 +605,7 @@ router.get("/calendar", requireAuth, requireRole("doctor", "admin"), async (req:
     .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
     .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
     .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id))
-    .where(and(
-      eq(appointmentsTable.id, sql`ANY(${appointments.map(a => a.id)})`)
-    ));
+    .where(inArray(appointmentsTable.id, appointments.map(a => a.id)));
 
   const formatted = rows.map(formatAppointmentRow);
   res.json(formatted);
