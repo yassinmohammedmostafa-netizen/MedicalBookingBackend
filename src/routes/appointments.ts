@@ -104,6 +104,11 @@ router.get("/appointments", requireAuth, async (req: AuthRequest, res): Promise<
 });
 
 router.post("/appointments", requireAuth, requireRole("patient"), async (req: AuthRequest, res): Promise<void> => {
+  // Fix for instant sessions where slotId is sent as null
+  if (req.body && req.body.slotId === null) {
+    req.body.slotId = undefined;
+  }
+
   const parsed = CreateAppointmentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
