@@ -102,6 +102,7 @@ router.get("/admin/doctors", requireAuth, requireRole("admin"), async (_req: Aut
       yearsExperience: doctorsTable.yearsExperience,
       languages: doctorsTable.languages,
       avatarUrl: doctorsTable.avatarUrl,
+      pendingAvatarUrl: doctorsTable.pendingAvatarUrl,
       isApproved: doctorsTable.isApproved,
       pendingBio: doctorsTable.pendingBio,
       pendingPrice: doctorsTable.pendingPrice,

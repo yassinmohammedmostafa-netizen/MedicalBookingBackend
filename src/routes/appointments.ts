@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, slotsTable, usersTable, messagesTable } from "../../db/src/index.js";
-import { eq, and, asc, sql, inArray, aliasedTable } from "drizzle-orm";
+import { eq, and, or, asc, sql, inArray, aliasedTable } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import {
   CreateAppointmentBody,
@@ -588,9 +588,16 @@ router.get("/calendar", requireAuth, requireRole("doctor", "admin"), async (req:
       res.json([]);
       return;
     }
-    appointments = await db.select().from(appointmentsTable).where(and(eq(appointmentsTable.doctorId, doctor.id), eq(appointmentsTable.isPaid, true)));
+    appointments = await db.select().from(appointmentsTable).where(
+      and(
+        eq(appointmentsTable.doctorId, doctor.id), 
+        or(eq(appointmentsTable.isPaid, true), eq(appointmentsTable.status, "confirmed"))
+      )
+    );
   } else {
-    appointments = await db.select().from(appointmentsTable).where(eq(appointmentsTable.isPaid, true));
+    appointments = await db.select().from(appointmentsTable).where(
+      or(eq(appointmentsTable.isPaid, true), eq(appointmentsTable.status, "confirmed"))
+    );
   }
 
   if (appointments.length === 0) {
