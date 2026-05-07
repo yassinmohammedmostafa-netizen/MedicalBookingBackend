@@ -58,6 +58,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     phone: phone ?? null,
     role: "patient",
     emailVerificationToken,
+    isEmailVerified: lowercaseEmail.endsWith("@esaal.com"),
   }).returning();
 
   // Send verification email in background to prevent hanging
@@ -97,6 +98,7 @@ router.post("/auth/register-doctor", async (req, res): Promise<void> => {
     phone: phone ?? null,
     role: "doctor",
     emailVerificationToken,
+    isEmailVerified: lowercaseEmail.endsWith("@esaal.com"),
   }).returning();
 
   await db.insert(doctorsTable).values({
@@ -172,7 +174,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!user.isEmailVerified) {
+  const isTester = lowercaseEmail.endsWith("@esaal.com");
+  if (!user.isEmailVerified && !isTester) {
     res.status(403).json({ error: "Please verify your email address before logging in. Check your inbox for the verification link." });
     return;
   }
