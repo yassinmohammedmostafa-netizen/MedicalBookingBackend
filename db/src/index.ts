@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema/index.js";
+import { sql } from "drizzle-orm";
 import "dotenv/config";
 
 const getConnectionString = () => {
@@ -19,6 +20,11 @@ export const getDb = () => {
   if (!dbInstance) {
     client = postgres(getConnectionString());
     dbInstance = drizzle(client, { schema });
+    
+    // Debug: Log existing tables
+    dbInstance.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`)
+      .then((res: any) => console.log("[DB_DEBUG] Tables found in DB:", res))
+      .catch((err: any) => console.error("[DB_DEBUG] Table check failed:", err));
   }
   return dbInstance;
 };
