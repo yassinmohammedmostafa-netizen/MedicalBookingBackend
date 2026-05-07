@@ -148,7 +148,8 @@ router.get(["/auth/verify-email", "/verify-email"], async (req, res): Promise<vo
     .set({ isEmailVerified: true, emailVerificationToken: null })
     .where(eq(usersTable.id, user.id));
 
-  res.json({ success: true });
+  const appUrl = process.env.APP_URL || "https://medical-booking-hub.vercel.app";
+  res.redirect(`${appUrl}/login?verified=true`);
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
