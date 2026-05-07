@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, usersTable, slotsTable } from "../../db/src/index.js";
-import { eq, count, ne, sql } from "drizzle-orm";
+import { eq, count, ne, sql, isNotNull } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import { CreateAdminUserBody } from "../../zod/src/index.js";
 import { hashPassword } from "../lib/auth.js";
@@ -498,7 +498,7 @@ router.get("/admin/reviews", requireAuth, requireRole("admin"), async (_req: Aut
     .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
     .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
     .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
-    .where(ne(appointmentsTable.patientRating, null as any));
+    .where(isNotNull(appointmentsTable.patientRating));
 
   res.json(reviews.map(r => ({
     ...r,
