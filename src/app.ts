@@ -49,4 +49,13 @@ app.use("/uploads", express.static("uploads"));
 app.use("/", router);
 app.use("/api", router);
 
+// Global Error Handler
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("[GLOBAL_ERROR]", err);
+  res.status(500).json({ 
+    error: "Internal Server Error",
+    message: err.message
+  });
+});
+
 export default app;
