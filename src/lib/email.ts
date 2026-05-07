@@ -143,6 +143,35 @@ export async function sendPasswordResetEmail(
     console.log("[EMAIL] PROVIDER NOT CONFIGURED: RESEND");
   }
 
+  // Try Brevo API as fallback/primary
+  if (process.env.BREVO_API_KEY) {
+    console.log(`[EMAIL] Attempting to send password reset email to ${to} via Brevo API...`);
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          sender: { name: "Esaal Platform", email: process.env.SMTP_FROM || "medicalbookinghub@outlook.com" },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: text
+        })
+      });
+
+      if (response.ok) {
+        console.log(`[EMAIL] Brevo API success for ${to}`);
+        return;
+      }
+    } catch (err) {
+      console.error(`[EMAIL] Brevo API exception for ${to}:`, err);
+    }
+  }
+
   const smtpTransporter = createSmtpTransporter();
   if (smtpTransporter) {
     const fromName = "Esaal Platform";
@@ -212,6 +241,38 @@ export async function sendEmailVerificationEmail(
     }
   }
 
+  // Try Brevo API first as it's more reliable on Vercel than SMTP
+  if (process.env.BREVO_API_KEY) {
+    console.log(`[EMAIL] Attempting to send verification email to ${to} via Brevo API...`);
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          sender: { name: "Esaal Platform", email: process.env.SMTP_FROM || "medicalbookinghub@outlook.com" },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: text
+        })
+      });
+
+      if (response.ok) {
+        console.log(`[EMAIL] Brevo API success for ${to}`);
+        return;
+      } else {
+        const errData = await response.json();
+        console.error(`[EMAIL] Brevo API error:`, errData);
+      }
+    } catch (err) {
+      console.error(`[EMAIL] Brevo API exception:`, err);
+    }
+  }
+
   const smtpTransporter = createSmtpTransporter();
   if (smtpTransporter) {
     const fromName = "Esaal Platform";
@@ -230,7 +291,7 @@ export async function sendEmailVerificationEmail(
 
   console.warn(`[EMAIL] ⚠️ No email service configured. Verification link for ${to} is: ${verificationLink}`);
   if (process.env.NODE_ENV === "production") {
-    throw new Error("No email service configured. Set up the Resend integration or SMTP environment variables.");
+    throw new Error("No email service configured. Set up the Brevo API Key or SMTP environment variables.");
   }
 }
 
