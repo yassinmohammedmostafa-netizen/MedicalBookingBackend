@@ -243,6 +243,19 @@ router.get("/appointments/:id", requireAuth, async (req: AuthRequest, res): Prom
     return;
   }
 
+  // Ownership Check
+  if (req.userRole === "patient" && appt.patientId !== req.userId) {
+    res.status(403).json({ error: "Access denied: This appointment does not belong to you" });
+    return;
+  }
+  if (req.userRole === "doctor") {
+    const [doctor] = await db.select().from(doctorsTable).where(eq(doctorsTable.userId, req.userId!));
+    if (!doctor || doctor.id !== appt.doctorId) {
+      res.status(403).json({ error: "Access denied: This appointment is not assigned to you" });
+      return;
+    }
+  }
+
   const [row] = await db
     .select({
       appointment: appointmentsTable,
@@ -379,6 +392,15 @@ router.patch("/appointments/:id/status", requireAuth, requireRole("doctor", "adm
   if (!appt) {
     res.status(404).json({ error: "Appointment not found" });
     return;
+  }
+
+  // Ownership Check
+  if (req.userRole === "doctor") {
+    const [doctor] = await db.select().from(doctorsTable).where(eq(doctorsTable.userId, req.userId!));
+    if (!doctor || doctor.id !== appt.doctorId) {
+      res.status(403).json({ error: "Access denied: You can only update your own appointments" });
+      return;
+    }
   }
 
   const updates: Partial<typeof appointmentsTable.$inferInsert> = { status: parsed.data.status };
