@@ -2,12 +2,14 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, usersTable, slotsTable } from "../../db/src/index.js";
-import { eq, count, ne, sql, isNotNull } from "drizzle-orm";
+import { eq, count, ne, sql, isNotNull, aliasedTable } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import { CreateAdminUserBody } from "../../zod/src/index.js";
 import { hashPassword } from "../lib/auth.js";
 
 const router: any = Router();
+const dUsers = aliasedTable(usersTable, "d_users");
+
 
 router.get("/admin/appointments", requireAuth, requireRole("admin"), async (req: AuthRequest, res): Promise<void> => {
   try {
@@ -18,13 +20,13 @@ router.get("/admin/appointments", requireAuth, requireRole("admin"), async (req:
         appointment: appointmentsTable,
         patient: usersTable,
         doctor: doctorsTable,
-        doctorUser: sql`d_users`,
+        doctorUser: dUsers,
         slot: slotsTable,
       })
       .from(appointmentsTable)
       .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
       .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
-      .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+      .innerJoin(dUsers, eq(doctorsTable.userId, dUsers.id))
       .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id));
 
     let formatted = rows.map(row => {
@@ -492,12 +494,12 @@ router.get("/admin/reviews", requireAuth, requireRole("admin"), async (_req: Aut
       isReviewApproved: appointmentsTable.isReviewApproved,
       createdAt: appointmentsTable.createdAt,
       patientName: sql<string>`${usersTable.firstName} || ' ' || ${usersTable.lastName}`,
-      doctorName: sql<string>`d_users.first_name || ' ' || d_users.last_name`,
+      doctorName: sql<string>`${dUsers.firstName} || ' ' || ${dUsers.lastName}`,
     })
     .from(appointmentsTable)
     .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
     .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
-    .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+    .innerJoin(dUsers, eq(doctorsTable.userId, dUsers.id))
     .where(isNotNull(appointmentsTable.patientRating));
 
   res.json(reviews.map(r => ({

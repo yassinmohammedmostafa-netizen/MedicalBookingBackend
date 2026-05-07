@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
 import { appointmentsTable, doctorsTable, slotsTable, usersTable, messagesTable } from "../../db/src/index.js";
-import { eq, and, asc, sql, inArray } from "drizzle-orm";
+import { eq, and, asc, sql, inArray, aliasedTable } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/requireAuth.js";
 import {
   CreateAppointmentBody,
@@ -13,6 +13,8 @@ import {
 } from "../../zod/src/index.js";
 
 const router: any = Router();
+const dUsers = aliasedTable(usersTable, "d_users");
+
 
 // Helper to safely format appointment data with full doctor/patient/slot context
 function formatAppointmentRow(row: any) {
@@ -78,13 +80,13 @@ router.get("/appointments", requireAuth, async (req: AuthRequest, res): Promise<
         appointment: appointmentsTable,
         patient: usersTable,
         doctor: doctorsTable,
-        doctorUser: sql`d_users`,
+        doctorUser: dUsers,
         slot: slotsTable,
       })
       .from(appointmentsTable)
       .innerJoin(usersTable, eq(appointmentsTable.patientId, usersTable.id))
       .innerJoin(doctorsTable, eq(appointmentsTable.doctorId, doctorsTable.id))
-      .innerJoin(sql`${usersTable} as d_users`, eq(doctorsTable.userId, sql`d_users.id`))
+      .innerJoin(dUsers, eq(doctorsTable.userId, dUsers.id))
       .leftJoin(slotsTable, eq(appointmentsTable.slotId, slotsTable.id));
 
     let rows;
