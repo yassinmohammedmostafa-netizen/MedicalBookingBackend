@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { Router } from "express";
 import { db } from "../../db/src/index.js";
-import { doctorsTable, usersTable, slotsTable } from "../../db/src/index.js";
+import { doctorsTable, usersTable, slotsTable, appointmentsTable } from "../../db/src/index.js";
 import { eq, and, or, like, sql } from "drizzle-orm";
 import { GetDoctorsQueryParams } from "../../zod/src/index.js";
 
@@ -177,7 +177,7 @@ router.get("/doctors/:id/slots", async (req, res): Promise<void> => {
   })));
 });
 
-router.delete("/doctors/:id", async (req, res): Promise<void> => {
+router.delete("/doctors/:id", requireAuth, requireRole("admin"), async (req: AuthRequest, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
   if (isNaN(id)) {
@@ -185,9 +185,19 @@ router.delete("/doctors/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const [doctor] = await db.select().from(doctorsTable).where(eq(doctorsTable.id, id));
+  if (!doctor) {
+    res.status(404).json({ error: "Doctor not found" });
+    return;
+  }
+
+  const userId = doctor.userId;
+
+  // Delete everything related to this doctor
   await db.delete(slotsTable).where(eq(slotsTable.doctorId, id));
+  await db.delete(appointmentsTable).where(eq(appointmentsTable.doctorId, id));
   await db.delete(doctorsTable).where(eq(doctorsTable.id, id));
-  await db.delete(usersTable).where(eq(usersTable.id, id));
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
 
   res.json({ success: true });
 });

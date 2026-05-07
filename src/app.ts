@@ -52,6 +52,16 @@ app.use("/api", router);
 // Global Error Handler
 app.use((err: any, req: any, res: any, next: any) => {
   console.error("[GLOBAL_ERROR]", err);
+  
+  // Handle Multer specific errors
+  if (err.code === "LIMIT_FILE_SIZE") {
+    res.status(413).json({
+      error: "File too large",
+      message: "The uploaded file exceeds the allowed size limit (10MB)."
+    });
+    return;
+  }
+
   res.status(500).json({ 
     error: "Internal Server Error",
     message: err.message
