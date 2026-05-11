@@ -183,7 +183,7 @@ router.patch("/admin/doctors/:id", requireAuth, requireRole("admin"), async (req
   const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid doctor id" }); return; }
 
-  const { price, specialty } = req.body ?? {};
+  const { price, specialty, isOnline } = req.body ?? {};
   const updates: Record<string, any> = {};
   if (price !== undefined) {
     updates.price = price;
@@ -193,6 +193,9 @@ router.patch("/admin/doctors/:id", requireAuth, requireRole("admin"), async (req
   if (specialty !== undefined) {
     updates.specialty = Array.isArray(specialty) ? specialty : [specialty];
     updates.pendingSpecialty = null;
+  }
+  if (isOnline !== undefined) {
+    updates.isOnline = !!isOnline;
   }
 
   if (Object.keys(updates).length === 0) {

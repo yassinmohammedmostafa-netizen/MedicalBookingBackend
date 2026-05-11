@@ -48,11 +48,7 @@ router.get("/doctors", async (req, res): Promise<void> => {
   if (filters.sessionType) conditions.push(eq(doctorsTable.sessionType, filters.sessionType));
   if (filters.gender) conditions.push(eq(doctorsTable.gender, filters.gender));
   if (filters.immediate === "true") {
-    const onlineOrImmediate = or(
-      eq(doctorsTable.isOnline, true),
-      eq(doctorsTable.immediateAvailable, true),
-    );
-    if (onlineOrImmediate) conditions.push(onlineOrImmediate);
+    conditions.push(eq(doctorsTable.isOnline, true));
   }
   if (filters.freeConsultation === "true") conditions.push(eq(doctorsTable.freeConsultation, true));
   if (filters.specialty) {

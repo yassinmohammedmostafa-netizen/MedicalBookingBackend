@@ -135,7 +135,7 @@ router.post("/appointments", requireAuth, requireRole("patient"), async (req: Au
 
       // Instant booking — no slotId provided
       if (slotId == null) {
-        if (!doctor.isOnline && !doctor.immediateAvailable) {
+        if (!doctor.isOnline) {
           throw { status: 400, message: "Doctor is not available for instant sessions right now" };
         }
 

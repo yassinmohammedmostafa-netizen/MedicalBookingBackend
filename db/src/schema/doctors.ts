@@ -15,7 +15,6 @@ export const doctorsTable = pgTable("doctors", {
   reviewCount: integer("review_count").notNull().default(0),
   bio: text("bio"),
   isOnline: boolean("is_online").notNull().default(false),
-  immediateAvailable: boolean("immediate_available").notNull().default(false),
   freeConsultation: boolean("free_consultation").notNull().default(false),
   yearsExperience: integer("years_experience"),
   languages: jsonb("languages").$type<string[]>().notNull().default(["Arabic"]),
