@@ -39,9 +39,13 @@ router.get("/specialties", async (_req, res): Promise<void> => {
   res.json(SPECIALTIES);
 });
 
-router.get("/doctors", async (req, res): Promise<void> => {
-  const parsed = GetDoctorsQueryParams.safeParse(req.query);
-  const filters = parsed.success ? parsed.data : {};
+  console.log("[GET_DOCTORS] Start", req.query);
+  try {
+    const parsed = GetDoctorsQueryParams.safeParse(req.query);
+    if (!parsed.success) {
+      console.log("[GET_DOCTORS] Zod error:", parsed.error);
+    }
+    const filters = parsed.success ? parsed.data : {};
 
   const conditions = [eq(doctorsTable.isApproved, true)];
   if (filters.type) conditions.push(eq(doctorsTable.type, filters.type));
@@ -93,7 +97,11 @@ router.get("/doctors", async (req, res): Promise<void> => {
     email: r.users.email,
   }));
 
-  res.json(doctors);
+    res.json(doctors);
+  } catch (err) {
+    console.error("[GET_DOCTORS] Error:", err);
+    res.status(500).json({ error: "Internal Server Error", message: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 router.get("/doctors/:id", async (req, res): Promise<void> => {
@@ -104,7 +112,9 @@ router.get("/doctors/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [row] = await db
+  console.log("[GET_DOCTOR_BY_ID] Start", id);
+  try {
+    const [row] = await db
     .select({
       doctors: {
         id: doctorsTable.id,
@@ -147,7 +157,11 @@ router.get("/doctors/:id", async (req, res): Promise<void> => {
     email: row.users.email,
   };
 
-  res.json(doctor);
+    res.json(doctor);
+  } catch (err) {
+    console.error("[GET_DOCTOR_BY_ID] Error:", err);
+    res.status(500).json({ error: "Internal Server Error", message: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 router.get("/doctors/:id/slots", async (req, res): Promise<void> => {
