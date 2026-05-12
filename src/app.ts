@@ -2,12 +2,26 @@
 import pinoHttp from "pino-http";
 import path from "path";
 import cors from "cors";
+import compression from "compression";
+import helmet from "helmet";
 import express, { Request, Response } from "express";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 
 const app: any = express();
 
+// Security & Performance Middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(compression());
+app.use(cors({
+  origin: "*",
+  credentials: true,
+  methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
+// Logging
 app.use(
   (pinoHttp as any)({
     logger,
@@ -27,19 +41,6 @@ app.use(
     },
   }),
 );
-
-// Manual CORS & OPTIONS handling for Vercel stability
-app.use((req: any, res: any, next: any) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-  res.header("Access-Control-Allow-Credentials", "true");
-  
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-  next();
-});
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
