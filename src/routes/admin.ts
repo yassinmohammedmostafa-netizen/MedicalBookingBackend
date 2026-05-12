@@ -97,7 +97,6 @@ router.get("/admin/doctors", requireAuth, requireRole("admin"), async (_req: Aut
       reviewCount: doctorsTable.reviewCount,
       bio: doctorsTable.bio,
       isOnline: doctorsTable.isOnline,
-      immediateAvailable: doctorsTable.immediateAvailable,
       freeConsultation: doctorsTable.freeConsultation,
       yearsExperience: doctorsTable.yearsExperience,
       languages: doctorsTable.languages,
@@ -296,7 +295,6 @@ router.post("/admin/users/:id/repair-doctor", requireAuth, requireRole("admin"),
     sessionType: "individual",
     rating: 0,
     reviewCount: 0,
-    immediateAvailable: false,
     freeConsultation: false,
   });
 

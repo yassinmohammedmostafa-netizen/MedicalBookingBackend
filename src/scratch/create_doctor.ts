@@ -47,7 +47,6 @@ async function createDoctor() {
       sessionType,
       paymentInfo,
       isOnline: false,
-      immediateAvailable: false,
       freeConsultation: false,
       rating: 5,
       reviewCount: 0,

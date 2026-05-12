@@ -113,7 +113,6 @@ router.post("/auth/register-doctor", async (req, res): Promise<void> => {
     sessionType: sessionType ?? "individual",
     paymentInfo: paymentInfo ?? null,
     isOnline: false,
-    immediateAvailable: false,
     freeConsultation: false,
     rating: 0,
     reviewCount: 0,
