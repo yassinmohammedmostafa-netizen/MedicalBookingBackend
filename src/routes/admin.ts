@@ -119,7 +119,15 @@ router.get("/admin/doctors", requireAuth, requireRole("admin"), async (_req: Aut
     .from(doctorsTable)
     .innerJoin(usersTable, eq(doctorsTable.userId, usersTable.id));
 
-  res.json(doctors);
+  const normalized = doctors.map(d => ({
+    ...d,
+    specialty: Array.isArray(d.specialty) ? d.specialty : (d.specialty ? [d.specialty] : []),
+    languages: Array.isArray(d.languages) ? d.languages : (d.languages ? [d.languages] : []),
+    pendingSpecialty: Array.isArray(d.pendingSpecialty) ? d.pendingSpecialty : (d.pendingSpecialty ? [d.pendingSpecialty] : null),
+    pendingLanguages: Array.isArray(d.pendingLanguages) ? d.pendingLanguages : (d.pendingLanguages ? [d.pendingLanguages] : null),
+  }));
+
+  res.json(normalized);
 });
 
 router.patch("/admin/doctors/:id/approve-changes", requireAuth, requireRole("admin"), async (req: AuthRequest, res): Promise<void> => {
